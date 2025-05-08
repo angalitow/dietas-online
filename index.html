@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Generador de Dietas Personalizadas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    overflow: auto;
+    margin: 0;
+    background: linear-gradient(135deg, #a8edea, #fed6e3);
+    font-family: 'Montserrat', sans-serif;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    align-items: center;
+    padding: 10px;
+  }
+  #app {
+    background: #fff;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 350px;
+    max-height: 600px;
+    padding: 20px 25px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+  }
+  h1 {
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #ff6f91;
+    text-align: center;
+  }
+  form {
+    flex: 1 0 auto;
+    overflow-y: auto;
+    margin-bottom: 10px;
+  }
+  label {
+    font-weight: 600;
+    margin-top: 15px;
+    display: inline-block;
+    margin-bottom: 6px;
+    color: #444;
+  }
+  input[type="number"], select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1.8px solid #ff6f91;
+    font-size: 1rem;
+    outline-offset: 2px;
+    transition: border-color 0.3s ease;
+  }
+  input[type="number"]:focus, select:focus {
+    border-color: #f3564f;
+  }
+  .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .checkbox-group label {
+    font-weight: 500;
+    background: #ff6f91;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 25px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+  }
+  .checkbox-group input[type="checkbox"] {
+    display: none;
+  }
+  .checkbox-group input[type="checkbox"]:checked + label {
+    background: #f3564f;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    background: #f3564f;
+    border: none;
+    border-radius: 30px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: background 0.4s ease;
+    margin-top: 15px;
+  }
+  button:hover {
+    background: #ff89a0;
+  }
+  #result {
+    flex: 1 0 auto;
+    overflow-y: auto;
+    background: #fff0f4;
+    border: 2px solid #ff6f91;
+    border-radius: 15px;
+    padding: 15px 20px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #4a3c57;
+  }
+  #result h2 {
+    margin-top: 0;
+    font-size: 1.3rem;
+    color: #f3564f;
+  }
+  @media (max-width: 400px) {
+    #app {
+      max-width: 100%;
+      max-height: 600px;
+      padding: 15px;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="app">
+    <h1>Generador de Dietas</h1>
+    <form id="dietForm" aria-label="Formulario para crear dietas personalizadas">
+      <label for="height">Altura (cm):</label>
+      <input type="number" id="height" name="height" min="50" max="250" placeholder="Ej: 170" required aria-required="true" />
+      
+      <label for="weight">Peso (kg):</label>
+      <input type="number" id="weight" name="weight" min="20" max="300" placeholder="Ej: 70" required aria-required="true" />
+      
+      <label>Preferencias de alimentos:</label>
+      <div class="checkbox-group" role="group" aria-label="Preferencias alimenticias">
+        <input type="checkbox" id="prefVegetariano" name="preferences" value="vegetariano" />
+        <label for="prefVegetariano">Vegetariano</label>
+        <input type="checkbox" id="prefVegano" name="preferences" value="vegano" />
+        <label for="prefVegano">Vegano</label>
+        <input type="checkbox" id="prefSinGluten" name="preferences" value="sin_gluten" />
+        <label for="prefSinGluten">Sin Gluten</label>
+        <input type="checkbox" id="prefSinLactosa" name="preferences" value="sin_lactosa" />
+        <label for="prefSinLactosa">Sin Lactosa</label>
+        <input type="checkbox" id="prefOmnivoro" name="preferences" value="omnivoro" />
+        <label for="prefOmnivoro">Omnívoro</label>
+      </div>
+      
+      <label for="goal">Objetivo físico:</label>
+      <select id="goal" name="goal" required aria-required="true">
+        <option value="" disabled selected>Selecciona un objetivo</option>
+        <option value="perder_peso">Perder peso</option>
+        <option value="ganar_musculo">Ganar músculo</option>
+        <option value="mantener_peso">Mantener peso</option>
+      </select>
+      
+      <button type="submit" aria-label="Generar dieta">Generar Dieta</button>
+    </form>
+    <section id="result" aria-live="polite" aria-atomic="true" aria-relevant="additions"></section>
+  </div>
+
+<script>
+  const form = document.getElementById('dietForm');
+  const result = document.getElementById('result');
+
+  // Function to calculate IMC
+  function calcularIMC(peso, alturaCm) {
+    const alturaM = alturaCm / 100;
+    return peso / (alturaM * alturaM);
+  }
+
+  // Determine IMC category
+  function categoriaIMC(imc) {
+    if (imc < 18.5) return 'Bajo peso';
+    if (imc < 25) return 'Normal';
+    if (imc < 30) return 'Sobrepeso';
+    return 'Obesidad';
+  }
+
+  // Generate diet plan based on input criteria
+  function generarDieta(preferences, goal, imcCategory) {
+    // Base calorie range depending on goal and IMC category
+    let caloriasBase;
+    switch (goal) {
+      case 'perder_peso':
+        caloriasBase = 1500;
+        break;
+      case 'ganar_musculo':
+        caloriasBase = 2800;
+        break;
+      case 'mantener_peso':
+      default:
+        caloriasBase = 2000;
+    }
+    // Adjust calories depending on IMC category
+    switch (imcCategory) {
+      case 'Bajo peso':
+        caloriasBase += 300;
+        break;
+      case 'Normal':
+        break;
+      case 'Sobrepeso':
+        caloriasBase -= 300;
+        break;
+      case 'Obesidad':
+        caloriasBase -= 500;
+        break;
+    }
+
+    // Food options by preference
+    const alimentos = {
+      carnivore: {
+        desayuno: ['Huevos revueltos', 'Tostadas integrales', 'Jugo natural'],
+        almuerzo: ['Pechuga de pollo', 'Arroz integral', 'Ensalada verde'],
+        cena: ['Filete de res magro', 'Verduras al vapor', 'Quinoa'],
+        snack: ['Yogur natural', 'Frutos secos']
+      },
+      vegetariano: {
+        desayuno: ['Avena con frutas', 'Pan integral con queso', 'Té verde'],
+        almuerzo: ['Ensalada de legumbres', 'Pasta integral', 'Verduras asadas'],
+        cena: ['Tortilla de espinacas', 'Arroz con champiñones', 'Sopa de verduras'],
+        snack: ['Frutas frescas', 'Nueces']
+      },
+      vegano: {
+        desayuno: ['Batido de frutas con leche de almendra', 'Tostadas con aguacate'],
+        almuerzo: ['Ensalada de quinoa y garbanzos', 'Verduras al horno'],
+        cena: ['Tofu salteado', 'Arroz integral', 'Verduras al vapor'],
+        snack: ['Frutas secas', 'Hummus con bastones de verduras']
+      },
+      sin_gluten: {
+        desayuno: ['Avena certificada sin gluten', 'Frutas frescas'],
+        almuerzo: ['Pollo a la plancha', 'Papas al horno', 'Ensalada'],
+        cena: ['Pescado a la parrilla', 'Verduras al vapor', 'Arroz'],
+        snack: ['Frutos secos', 'Yogur sin gluten']
+      },
+      sin_lactosa: {
+        desayuno: ['Pan integral sin lactosa', 'Frutas'],
+        almuerzo: ['Carne magra', 'Verduras', 'Quinoa'],
+        cena: ['Sopa de verduras', 'Arroz', 'Ensalada'],
+        snack: ['Frutas', 'Semillas']
+      }
+    };
+
+    // Choose main food preference for diet plan:
+    // If omnivore selected, default to carnivore
+    let mainPref = 'carnivore';
+    if (preferences.includes('vegano')) mainPref = 'vegano';
+    else if (preferences.includes('vegetariano')) mainPref = 'vegetariano';
+    else if (preferences.includes('omnivoro')) mainPref = 'carnivore';
+
+    // Additional restrictions (filter out ingredients based on other preferences)
+    // We will exclude incompatible groups for simplicity:
+    // If sin_gluten or sin_lactosa selected, prioritize those foods to avoid ingredients.
+    // But for brevity, just handle those separately:
+    let dietPlan;
+
+    // If sin_gluten or sin_lactosa and mainPref are present, try to combine:
+    // For simplicity, if sin_gluten preference exists, replace meals with sin_gluten options.
+    if (preferences.includes('sin_gluten')) {
+      dietPlan = alimentos.sin_gluten;
+    } else if (preferences.includes('sin_lactosa')) {
+      dietPlan = alimentos.sin_lactosa;
+    } else {
+      dietPlan = alimentos[mainPref];
+    }
+
+    // Build a string summary of the diet
+    let planText = `<p><strong>Calorías diarias recomendadas:</strong> ${caloriasBase} kcal</p>`;
+    planText += `<p><strong>Desayuno:</strong> ${dietPlan.desayuno.join(', ')}</p>`;
+    planText += `<p><strong>Almuerzo:</strong> ${dietPlan.almuerzo.join(', ')}</p>`;
+    planText += `<p><strong>Cena:</strong> ${dietPlan.cena.join(', ')}</p>`;
+    planText += `<p><strong>Snack:</strong> ${dietPlan.snack.join(', ')}</p>`;
+    planText += `<small>Nota: Este es un plan orientativo. Consulta un nutricionista para recomendaciones personalizadas.</small>`;
+
+    return planText;
+  }
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const altura = parseFloat(form.height.value);
+    const peso = parseFloat(form.weight.value);
+    if (!(altura > 0 && peso > 0)) {
+      result.innerHTML = '<p style="color: red;">Por favor, ingresa valores válidos de altura y peso.</p>';
+      return;
+    }
+    const imc = calcularIMC(peso, altura);
+    const imcCat = categoriaIMC(imc);
+
+    // Read preferences
+    const selectedPrefs = [...form.querySelectorAll('input[name="preferences"]:checked')].map(inp => inp.value);
+    if (selectedPrefs.length === 0) {
+      result.innerHTML = '<p style="color: red;">Selecciona al menos una preferencia alimenticia.</p>';
+      return;
+    }
+
+    const goal = form.goal.value;
+    if (!goal) {
+      result.innerHTML = '<p style="color: red;">Selecciona un objetivo físico.</p>';
+      return;
+    }
+
+    // Generate diet text
+    const dietaGenerada = generarDieta(selectedPrefs, goal, imcCat);
+
+    // Show results
+    result.innerHTML = `
+      <h2>Tu Plan de Dieta Personalizado</h2>
+      <p><strong>IMC:</strong> ${imc.toFixed(2)} (${imcCat})</p>
+      <p><strong>Objetivo:</strong> ${goal.replace('_', ' ')}</p>
+      <p><strong>Preferencias:</strong> ${selectedPrefs.join(', ')}</p>
+      ${dietaGenerada}
+    `;
+  });
+</script>
+</body>
+</html>
+</content>
+</create_file>
